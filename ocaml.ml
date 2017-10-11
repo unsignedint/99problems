@@ -418,3 +418,77 @@ let gray n =
   in aux ["0"; "1"] 1
 ;;
 
+
+(* 50. Huffman code *)
+
+type 'a binary_tree =
+  | Leaf of (int * 'a)
+  | Tree of (int * ('a binary_tree * 'a binary_tree))
+;;
+
+(* first a lame "priority queue" *)
+module Pq = struct
+  type 'a weighted_item = (int * 'a binary_tree)
+  type 'a t = 'a weighted_item list
+
+  let empty = []
+
+  let insert pq a =
+    let sort_func a b =
+      let w1 = match a with
+        | Tree (w, _) | Leaf (w, _) -> w in
+      let w2 = match b with
+        | Tree (w, _) | Leaf (w, _) -> w in
+      if w1 < w2 then -1 else if w1 == w2 then 0 else 1 in
+    let lst = a :: pq in
+    List.stable_sort sort_func lst
+
+let remove_min = function
+    | hd :: tl -> (Some hd, tl)
+    | [] -> (None, [])
+end
+
+let make_pq lst =
+  let rec aux pq = function
+    | [] -> pq
+    | (v, w) :: xs -> aux (Pq.insert pq (Leaf (w, v))) xs
+  in aux Pq.empty lst
+;;
+
+(* build the actual huffman tree *)
+let make_huffman_tree lst =
+  let pq = make_pq lst in
+  let rec build_tree pq =
+    let left, pq1 = Pq.remove_min pq in
+    let right, pq2 = Pq.remove_min pq1 in
+    match left, right with
+      | Some x, Some y ->
+        let w1 = match x with
+          | Tree (w, _) | Leaf (w, _) -> w in
+        let w2 = match y with
+          | Tree (w, _) | Leaf (w, _) -> w in
+        let new_tree = Tree (w1 + w2, (x, y)) in
+        let new_pq = Pq.insert pq2 new_tree in
+            build_tree new_pq      
+      | _, _ ->
+        pq
+        (* failwith "shouldn't happen?" *)
+  in List.hd (build_tree pq)
+;;
+
+(* dfs to report codes *)
+let huffman lst =
+  let tree = make_huffman_tree lst in
+  let rec dfs acc curr = function
+    | Tree (_, (x, y)) -> 
+    (dfs acc (curr ^ "0") x) @ (dfs acc (curr ^ "1") y)
+    | Leaf (_, x) -> (x, curr) :: acc
+  in dfs [] "" tree
+;;
+
+
+(* 55. Construct completely balanced binary trees. *)
+
+type 'a binary_tree =
+  | Empty
+  | Node of 'a * 'a binary_tree * 'a binary_tree;;
